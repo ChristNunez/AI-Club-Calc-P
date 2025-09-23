@@ -386,30 +386,56 @@ class Game:
             return False, f"Incorrect. Correct value was {correct_value}."
 
     def make_multiple_choice(self, problem: Problem):
-        # create MC options by computing true value and adding distractors
-        # We'll attempt numeric true value by evaluating at appropriate points
-        # For LimitProblem and DerivativeAtPointProblem and IntegralProblem, compute true
-        true_val = None
+        def clean(val):
+            """Return a nicely rounded float or int."""
+            return int(val) if abs(val) % 1 < 1e-6 else round(val, 1)
+
+        # Compute correct value
         if isinstance(problem, LimitProblem):
             true_val = eval_poly(problem.coeffs, problem.a)
+            distractors = [
+                eval_poly(problem.coeffs, problem.a + 1),
+                eval_poly(problem.coeffs, problem.a - 1),
+                eval_poly(derivative_coeffs(problem.coeffs), problem.a),  # wrong: derivative
+            ]
         elif isinstance(problem, DerivativeAtPointProblem):
             true_val = eval_poly(problem.deriv_coeffs, problem.x0)
+            distractors = [
+                eval_poly(problem.coeffs, problem.x0),  # mistake: used f(x) not f'(x)
+                eval_poly(problem.deriv_coeffs, problem.x0 + 1),  # off-by-one
+                true_val + random.choice([-2, -1, 1, 2]),  # noisy slope
+            ]
         elif isinstance(problem, DefiniteIntegralProblem):
             true_val = eval_poly(problem.anti, problem.b) - eval_poly(problem.anti, problem.a)
+            distractors = [
+                eval_poly(problem.anti, problem.b + 1) - eval_poly(problem.anti, problem.a),
+                eval_poly(problem.anti, problem.b) - eval_poly(problem.anti, problem.a - 1),
+                eval_poly(problem.anti, problem.a) - eval_poly(problem.anti, problem.b),  # swapped
+            ]
         else:
             true_val = 0.0
+            distractors = [1.0, -1.0, 2.0]
 
-        choices = [round_for_compare(true_val, 5)]
-        # generate distractors
-        for _ in range(3):
-            delta = random.choice([-3, -2, -1, 1, 2, 3]) * random.random()
-            distract = round_for_compare(true_val + delta, 5)
-            if distract in choices:
-                distract += round(random.choice([1, -1, 2]), 5)
-            choices.append(distract)
+        correct = clean(true_val)
+        choices_set = {correct}
+        choices = [correct]
+
+        for d in distractors:
+            val = clean(d)
+            if val not in choices_set:
+                choices.append(val)
+                choices_set.add(val)
+
+        # Fallback: add random, clean distractors
+        while len(choices) < 4:
+            noise = clean(correct + random.choice([-3, -2, -1, 1, 2, 3]))
+            if noise not in choices_set:
+                choices.append(noise)
+                choices_set.add(noise)
+
         random.shuffle(choices)
-        # Return choices as strings
-        return [str(c) for c in choices], round_for_compare(true_val, 5)
+        return [str(c) for c in choices], correct
+
 
     def choose_lesson(self):
         print("\nAvailable lessons:")
