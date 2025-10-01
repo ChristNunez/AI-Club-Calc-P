@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.venv/
+venv/
+
+# Node/Expo
+node_modules/
+npm-debug.log*
+yarn-error.log*
+.expo/
+.expo-shared/
+dist/
+web-build/
+
+# OS
+.DS_Store
+Thumbs.db
