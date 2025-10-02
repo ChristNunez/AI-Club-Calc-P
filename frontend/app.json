@@ -1,0 +1,10 @@
+{
+  "expo": {
+    "name": "frontend",
+    "slug": "frontend",
+    "scheme": "frontend",
+    "plugins": ["expo-router"],
+    "experiments": { "typedRoutes": true },            
+    "web": { "output": "static", "favicon": "./assets/images/favicon.png", "bundler": "metro" }
+  }
+}
